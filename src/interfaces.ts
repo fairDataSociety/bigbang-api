@@ -35,15 +35,15 @@ export interface InviteLink {
   /**
    * New account address (prefixed with '0x')
    */
-  link_address: string
+  account_address: string
 
   /**
-   * Signature of the `link_address` content using private key of `invite_address`
+   * Signature of the `account_address` content using private key of `invite_address`
    */
   invite_signature: string
 
   /**
-   * Signature of the `invite_address` content using private key of `link_address`
+   * Signature of the `invite_address` content using private key of `account_address`
    */
-  link_signature: string
+  account_signature: string
 }
