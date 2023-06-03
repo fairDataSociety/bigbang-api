@@ -1,5 +1,5 @@
 import supertest from 'supertest'
-import app from '../../../src/app'
+import app, { pool } from '../../../src/app'
 import { Wallet } from 'ethers'
 import knex from 'knex'
 import knexConfig from '../../../knexfile'
@@ -24,6 +24,7 @@ describe('/invite', () => {
   afterAll(async () => {
     // Close the database connection after all tests are done
     await db.destroy()
+    pool.end()
   })
 
   it('/invite/create', async () => {

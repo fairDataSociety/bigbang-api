@@ -2,16 +2,7 @@ import mysql, { FieldPacket, OkPacket } from 'mysql2/promise'
 import express from 'express'
 import { InviteCreate, InviteLink } from '../interfaces'
 import { isEthAddress, isSignature, isSignatureCorrect } from '../utils/signature'
-
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'bigbang',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-})
+import { pool } from '../app'
 
 const router = express.Router()
 
