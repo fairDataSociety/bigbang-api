@@ -18,7 +18,7 @@ export function isSignature(signature: string): boolean {
  * Check if the signature is correct
  *
  * @param signerAddress ETH address with '0x' prefix
- * @param signature Signature of the `signedContent`
+ * @param signature Signature of the `message`
  * @param message Content that was signed
  */
 export function isSignatureCorrect(signerAddress: string, signature: string, message: string): boolean {

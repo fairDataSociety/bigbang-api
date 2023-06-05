@@ -35,11 +35,11 @@ router.post('/create', async (req, res, next) => {
     }
 
     if (!isSignatureCorrect(inviterAddress, inviterSignature, inviteAddress)) {
-      throw new Error('Inviter signature is not correct')
+      throw new Error(`Inviter signature is not correct: ${inviterSignature}`)
     }
 
     if (!isSignatureCorrect(inviteAddress, inviteSignature, inviterAddress)) {
-      throw new Error('Invite signature is not correct')
+      throw new Error(`Invite signature is not correct: ${inviteSignature}`)
     }
 
     const connection = await pool.getConnection()
@@ -75,7 +75,7 @@ router.post('/create', async (req, res, next) => {
       await connection.commit()
 
       res.json({
-        result: 'ok',
+        status: 'ok',
       })
     } catch (error) {
       // If there's an error, rollback the transaction
@@ -141,7 +141,7 @@ router.post('/link', async (req, res, next) => {
       await connection.commit()
 
       res.json({
-        result: 'ok',
+        status: 'ok',
       })
     } catch (error) {
       // If there's an error, rollback the transaction
@@ -192,9 +192,8 @@ router.get('/inviter/:address', async (req, res, next) => {
       )
 
       res.json({
-        result: 'ok',
+        status: 'ok',
         data: {
-          // todo cover with tests if no invites or no accounts
           invites: inviteRows[0].count,
           accounts: accountRows[0].count,
         },
@@ -228,7 +227,7 @@ router.get('/info', async (req, res, next) => {
       }, {})
 
       res.json({
-        result: 'ok',
+        status: 'ok',
         data: info,
       })
     } catch (error) {

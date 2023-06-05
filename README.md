@@ -2,6 +2,25 @@
 
 ## API Endpoints
 
+Example of sending POST request with `fetch`.
+
+```js
+const data = {
+  inviter_address: '0x4ea09ea012ed94fdc2d87f39f007218ab9fed75c',
+  invite_address: '0xdd7b8ee07152d7b14ad35ba8eca5ee5490437869',
+  inviter_signature: '0x6770d398d5e87d0b96f46fb51770fb92b00da9999bd5acf7bf8acfa34598fce04f9b55d2a850d3efe8ec975ffc4e730004f3175ffdb904b7270ff371542f642a1c',
+  invite_signature: '0xf8919d14add60615f8a5929533a7591625b191f652732d475b49bb3ffde47f9a22374e696018e64e2eed024f220c1688dccbc14c9066edd8d1f4c5669674408e1b'
+}
+
+fetch('http://localhost:3333/v1/invite/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(data),
+})
+```
+
 ### 1. POST `/v1/invite/create`
 
 This API is used to create a record about the inviter and his invite. Using this method, information about the inviter who created the first invitation is inserted into the database.
@@ -25,7 +44,7 @@ Example response:
 
 ```json
 {
-    "result": "ok"
+    "status": "ok"
 }
 ```
 
@@ -54,7 +73,7 @@ Example response:
 
 ```json
 {
-    "result": "ok"
+    "status": "ok"
 }
 ```
 
@@ -76,7 +95,7 @@ Example response:
 
 ```json
 {
-    "result": "ok",
+    "status": "ok",
     "data": {
         "invites": 10,
         "accounts": 5
@@ -98,12 +117,12 @@ Example response:
 
 ```json
 {
-"result": "ok",
-    "data": {
-        "invites": 100,
-        "accounts": 50,
-        "inviters": 30
-    }
+    "status": "ok",
+        "data": {
+            "invites": 100,
+            "accounts": 50,
+            "inviters": 30
+        }
 }
 ```
 
