@@ -55,6 +55,10 @@ describe('/invite', () => {
     for (let i = 0; i < 100; i++) {
       const data = invites[i]
       const response = await supertestApp.post('/v1/invite/create').send(data)
+
+      if (response.status !== 200) {
+        console.log(response)
+      }
       expect(response.status).toBe(200)
     }
 
