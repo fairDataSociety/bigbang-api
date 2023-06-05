@@ -1,0 +1,55 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=10
+        ports:
+          - 3306:3306
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install MySQL client
+        run: sudo apt-get install -y mysql-client
+
+      - name: Setup MySQL Database
+        run: |
+          mysql -h localhost -uroot -ppassword bigbang < /migrations/db.sql
+          mysql -h localhost -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
+          mysql -h localhost -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
+
+      - name: Create .env file
+        run: |
+          echo "PORT=3333" >> .env
+          echo "MYSQL_HOST=localhost" >> .env
+          echo "MYSQL_USER=bigbanguser" >> .env
+          echo "MYSQL_PASSWORD=bigbangpassword" >> .env
+          echo "MYSQL_DB=bigbang" >> .env
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test

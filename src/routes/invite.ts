@@ -13,27 +13,32 @@ router.post('/create', async (req, res, next) => {
   try {
     const { inviter_address, invite_address, invite_signature, inviter_signature } = req.body as unknown as InviteCreate
 
-    if (!inviter_address || !isEthAddress(inviter_address)) {
-      throw new Error(`"inviter_address" is not valid: ${inviter_address}`)
+    const inviterAddress = inviter_address?.toLowerCase()
+    const inviteAddress = invite_address?.toLowerCase()
+    const inviteSignature = invite_signature?.toLowerCase()
+    const inviterSignature = inviter_signature?.toLowerCase()
+
+    if (!inviterAddress || !isEthAddress(inviterAddress)) {
+      throw new Error(`"inviter_address" is not valid: ${inviterAddress}`)
     }
 
-    if (!invite_address || !isEthAddress(invite_address)) {
-      throw new Error(`"invite_address" is not valid: ${invite_address}`)
+    if (!inviteAddress || !isEthAddress(inviteAddress)) {
+      throw new Error(`"invite_address" is not valid: ${inviteAddress}`)
     }
 
-    if (!invite_signature || !isSignature(invite_signature)) {
-      throw new Error(`"invite_signature" is not valid: ${invite_signature}`)
+    if (!inviteSignature || !isSignature(inviteSignature)) {
+      throw new Error(`"invite_signature" is not valid: ${inviteSignature}`)
     }
 
-    if (!inviter_signature || !isSignature(inviter_signature)) {
-      throw new Error(`"inviter_signature" is not valid: ${inviter_signature}`)
+    if (!inviterSignature || !isSignature(inviterSignature)) {
+      throw new Error(`"inviter_signature" is not valid: ${inviterSignature}`)
     }
 
-    if (!isSignatureCorrect(inviter_address, inviter_signature, invite_address)) {
+    if (!isSignatureCorrect(inviterAddress, inviterSignature, inviteAddress)) {
       throw new Error('Inviter signature is not correct')
     }
 
-    if (!isSignatureCorrect(invite_address, invite_signature, inviter_address)) {
+    if (!isSignatureCorrect(inviteAddress, inviteSignature, inviterAddress)) {
       throw new Error('Invite signature is not correct')
     }
 
@@ -41,15 +46,16 @@ router.post('/create', async (req, res, next) => {
     await connection.beginTransaction()
     try {
       const [inviterRows] = await connection.query<mysql.RowDataPacket[]>('SELECT id FROM inviter WHERE address = ?', [
-        inviter_address,
+        inviterAddress,
       ])
 
       let inviterId
 
       if (inviterRows.length === 0) {
-        const [result] = (await connection.query('INSERT INTO inviter (address) VALUES (?)', [
-          inviter_address.toLowerCase(),
-        ])) as [OkPacket, FieldPacket[]]
+        const [result] = (await connection.query('INSERT INTO inviter (address) VALUES (?)', [inviterAddress])) as [
+          OkPacket,
+          FieldPacket[],
+        ]
         inviterId = result.insertId
       } else {
         inviterId = inviterRows[0].id
@@ -62,7 +68,7 @@ router.post('/create', async (req, res, next) => {
       // Insert invite information
       await connection.query(
         'INSERT INTO invite (inviter_id, invite_address, inviter_signature, invite_signature) VALUES (?, ?, ?, ?)',
-        [inviterId, invite_address.toLowerCase(), inviter_signature.toLowerCase(), invite_signature.toLowerCase()],
+        [inviterId, inviteAddress, inviterSignature, inviteSignature],
       )
 
       // Commit the transaction
@@ -90,20 +96,25 @@ router.post('/link', async (req, res, next) => {
   try {
     const { invite_address, account_address, invite_signature, account_signature } = req.body as unknown as InviteLink
 
-    if (!invite_address || !isEthAddress(invite_address)) {
-      throw new Error(`"invite_address" is not valid: ${invite_address}`)
+    const inviteAddress = invite_address.toLowerCase()
+    const accountAddress = account_address.toLowerCase()
+    const inviteSignature = invite_signature.toLowerCase()
+    const accountSignature = account_signature.toLowerCase()
+
+    if (!inviteAddress || !isEthAddress(inviteAddress)) {
+      throw new Error(`"invite_address" is not valid: ${inviteAddress}`)
     }
 
-    if (!account_address || !isEthAddress(account_address)) {
-      throw new Error(`"account_address" is not valid: ${account_address}`)
+    if (!accountAddress || !isEthAddress(accountAddress)) {
+      throw new Error(`"account_address" is not valid: ${accountAddress}`)
     }
 
-    if (!invite_signature || !isSignature(invite_signature)) {
-      throw new Error(`"invite_signature" is not valid: ${invite_signature}`)
+    if (!inviteSignature || !isSignature(inviteSignature)) {
+      throw new Error(`"invite_signature" is not valid: ${inviteSignature}`)
     }
 
-    if (!account_signature || !isSignature(account_signature)) {
-      throw new Error(`"account_signature" is not valid: ${account_signature}`)
+    if (!accountSignature || !isSignature(accountSignature)) {
+      throw new Error(`"account_signature" is not valid: ${accountSignature}`)
     }
 
     const connection = await pool.getConnection()
@@ -111,11 +122,11 @@ router.post('/link', async (req, res, next) => {
     try {
       const [inviteRows] = await connection.query<mysql.RowDataPacket[]>(
         'SELECT id FROM invite WHERE invite_address = ?',
-        [invite_address],
+        [inviteAddress],
       )
 
       if (inviteRows.length === 0) {
-        throw new Error(`Invite does not exist with address: ${invite_address}`)
+        throw new Error(`Invite does not exist with address: ${inviteAddress}`)
       }
 
       const inviteId = inviteRows[0].id
@@ -123,7 +134,7 @@ router.post('/link', async (req, res, next) => {
       // Insert account information
       await connection.query(
         'INSERT INTO account (invite_id, account_address, invite_signature, account_signature) VALUES (?, ?, ?, ?)',
-        [inviteId, account_address.toLowerCase(), invite_signature.toLowerCase(), account_signature.toLowerCase()],
+        [inviteId, accountAddress, inviteSignature, accountSignature],
       )
 
       // Commit the transaction
@@ -140,6 +151,89 @@ router.post('/link', async (req, res, next) => {
       next(error)
     } finally {
       // Whether there's an error or not, release the connection back to the pool
+      connection.release()
+    }
+  } catch (e) {
+    next(e)
+  }
+})
+
+/**
+ * Amount of registered invites and amount of created accounts
+ */
+router.get('/inviter/:address', async (req, res, next) => {
+  try {
+    const address = req.params?.address?.toLowerCase()
+
+    if (!isEthAddress(address)) {
+      throw new Error(`"address" is not valid: ${address}`)
+    }
+
+    const connection = await pool.getConnection()
+    try {
+      const [inviterRows] = await connection.query<mysql.RowDataPacket[]>('SELECT id FROM inviter WHERE address = ?', [
+        address,
+      ])
+
+      if (inviterRows.length === 0) {
+        throw new Error(`Inviter does not exist with address: ${address}`)
+      }
+
+      const inviterId = inviterRows[0].id
+
+      const [inviteRows] = await connection.query<mysql.RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM invite WHERE inviter_id = ?',
+        [inviterId],
+      )
+
+      const [accountRows] = await connection.query<mysql.RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM account WHERE invite_id IN (SELECT id FROM invite WHERE inviter_id = ?)',
+        [inviterId],
+      )
+
+      res.json({
+        result: 'ok',
+        data: {
+          // todo cover with tests if no invites or no accounts
+          invites: inviteRows[0].count,
+          accounts: accountRows[0].count,
+        },
+      })
+    } catch (error) {
+      next(error)
+    } finally {
+      connection.release()
+    }
+  } catch (e) {
+    next(e)
+  }
+})
+
+router.get('/info', async (req, res, next) => {
+  try {
+    const connection = await pool.getConnection()
+    try {
+      const [result] = await connection.query<mysql.RowDataPacket[]>(`
+        SELECT 'invites' as type, COUNT(*) as count FROM invite
+        UNION ALL
+        SELECT 'accounts', COUNT(*) FROM account
+        UNION ALL
+        SELECT 'inviters', COUNT(*) FROM inviter
+      `)
+
+      const info = result.reduce((acc: Record<string, number>, row) => {
+        acc[row.type] = row.count
+
+        return acc
+      }, {})
+
+      res.json({
+        result: 'ok',
+        data: info,
+      })
+    } catch (error) {
+      next(error)
+    } finally {
       connection.release()
     }
   } catch (e) {

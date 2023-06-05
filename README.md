@@ -1,6 +1,6 @@
 # Big Bang API
 
-1 - Install dependencies:
+1 - Install dependencies (Node.js 16):
 
 `npm ci`
 

@@ -3,7 +3,15 @@ import app, { pool } from '../../../src/app'
 import { Wallet } from 'ethers'
 import knex from 'knex'
 import knexConfig from '../../../knexfile'
-import { AccountDb, expectItems, findItemById, InviteDb, InviterDb } from '../../utils/db'
+import {
+  AccountDb,
+  expectItems,
+  findItemById,
+  InfoResponse,
+  InviteDb,
+  InviterDb,
+  InviterResponse,
+} from '../../utils/db'
 
 const db = knex(knexConfig.development)
 
@@ -115,6 +123,96 @@ describe('/invite', () => {
       expect(data.invite_signature).toEqual(account.invite_signature)
       expect(data.account_address).toEqual(account.account_address)
       expect(data.account_signature).toEqual(account.account_signature)
+    }
+  })
+
+  it('/info', async () => {
+    await expectItems(db, 0, 0)
+
+    const supertestApp = supertest(app)
+    const inviter = Wallet.createRandom()
+    const invites = []
+
+    for (let i = 0; i < 100; i++) {
+      const invite = Wallet.createRandom()
+      invites.push({
+        inviter_address: inviter.address.toLowerCase(),
+        invite_address: invite.address.toLowerCase(),
+        inviter_signature: await inviter.signMessage(invite.address.toLowerCase()),
+        invite_signature: await invite.signMessage(inviter.address.toLowerCase()),
+      })
+    }
+
+    for (let i = 0; i < 100; i++) {
+      const data = invites[i]
+      const response = await supertestApp.post('/v1/invite/create').send(data)
+      expect(response.status).toBe(200)
+    }
+
+    await expectItems(db, 1, 100, 0)
+
+    const response = await supertestApp.get('/v1/invite/info')
+    expect(response.status).toBe(200)
+    const data = response.body as InfoResponse
+    expect(Object.keys(data.data)).toHaveLength(3)
+    expect(data.data.inviters).toEqual(1)
+    expect(data.data.invites).toEqual(100)
+    expect(data.data.accounts).toEqual(0)
+  })
+
+  it('/inviter/:address', async () => {
+    await expectItems(db, 0, 0)
+
+    const supertestApp = supertest(app)
+    const inviter = Wallet.createRandom()
+    const invites = []
+    const accounts = []
+
+    for (let i = 0; i < 100; i++) {
+      const invite = Wallet.createRandom()
+      const account = Wallet.createRandom()
+      invites.push({
+        inviter_address: inviter.address.toLowerCase(),
+        invite_address: invite.address.toLowerCase(),
+        inviter_signature: await inviter.signMessage(invite.address.toLowerCase()),
+        invite_signature: await invite.signMessage(inviter.address.toLowerCase()),
+      })
+
+      accounts.push({
+        invite_address: invite.address.toLowerCase(),
+        account_address: account.address.toLowerCase(),
+        invite_signature: await invite.signMessage(account.address.toLowerCase()),
+        account_signature: await account.signMessage(invite.address.toLowerCase()),
+      })
+    }
+
+    for (let i = 0; i < 100; i++) {
+      const data = invites[i]
+      const response = await supertestApp.post('/v1/invite/create').send(data)
+      expect(response.status).toBe(200)
+    }
+
+    await expectItems(db, 1, 100, 0)
+
+    const response = await supertestApp.get(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
+    const data = response.body as InviterResponse
+    expect(response.status).toBe(200)
+    expect(data.data.invites).toBe(100)
+    expect(data.data.accounts).toBe(0)
+
+    for (let i = 0; i < 100; i++) {
+      const account = accounts[i]
+      const response = await supertestApp.post('/v1/invite/link').send(account)
+      expect(response.status).toBe(200)
+
+      const accountsCount = i + 1
+      await expectItems(db, 1, 100, accountsCount)
+      const response1 = await supertestApp.get(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
+      const data1 = response1.body as InviterResponse
+      expect(response1.status).toBe(200)
+      expect(Object.keys(data1.data)).toHaveLength(2)
+      expect(data1.data.invites).toBe(100)
+      expect(data1.data.accounts).toBe(accountsCount)
     }
   })
 })

@@ -27,6 +27,25 @@ export interface AccountDb {
   updated_at: string
 }
 
+export interface InfoResponse extends ApiResponse {
+  data: {
+    invites: number
+    accounts: number
+    inviters: number
+  }
+}
+
+export interface InviterResponse extends ApiResponse {
+  data: {
+    invites: number
+    accounts: number
+  }
+}
+
+export interface ApiResponse {
+  result: string
+}
+
 export async function expectItems(db: Knex, inviter: number, invite = 0, account = 0): Promise<void> {
   const inviterData = await db('inviter').count('* as count')
   expect(inviterData[0].count).toEqual(inviter)
