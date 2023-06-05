@@ -36,6 +36,14 @@ jobs:
           mysql -h 127.0.0.1 -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
           mysql -h 127.0.0.1 -uroot -ppassword -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '';"
 
+      - name: Create .env file
+        run: |
+          echo "PORT=3333" >> .env
+          echo "MYSQL_HOST=127.0.0.1" >> .env
+          echo "MYSQL_USER=bigbanguser" >> .env
+          echo "MYSQL_PASSWORD=bigbangpassword" >> .env
+          echo "MYSQL_DB=bigbang" >> .env
+
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
