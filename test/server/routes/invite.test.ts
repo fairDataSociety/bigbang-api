@@ -12,6 +12,9 @@ import {
   InviterDb,
   InviterResponse,
 } from '../../utils/db'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const db = knex(knexConfig.development)
 
