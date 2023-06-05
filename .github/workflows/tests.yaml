@@ -31,9 +31,9 @@ jobs:
 
       - name: Setup MySQL Database
         run: |
-          mysql -h localhost -uroot -ppassword bigbang < ./migrations/db.sql
-          mysql -h localhost -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
-          mysql -h localhost -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
+          mysql -h mysql -uroot -ppassword bigbang < ./migrations/db.sql
+          mysql -h mysql -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
+          mysql -h mysql -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
 
       - name: Create .env file
         run: |
