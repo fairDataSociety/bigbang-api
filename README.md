@@ -1,5 +1,7 @@
 # Big Bang API
 
+API for storing information about inviters, invites created by them, new accounts created with the help of these invites. With the help of the final database, we can determine the leaders by the number of invitations and the number of invites turned into FDS accounts.
+
 ## API Endpoints
 
 Example of sending POST request with `fetch`.
