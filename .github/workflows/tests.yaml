@@ -32,18 +32,18 @@ jobs:
       - name: Verify MySQL connection
         run: |
           sleep 30
-            mysql --host mysql --port ${{ job.services.mysql.ports[3306] }} -uroot -ppassword -e "SHOW DATABASES;"
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -ppassword -e "SHOW DATABASES;"
 
       - name: Setup MySQL Database
         run: |
-          mysql -h mysql -uroot -ppassword bigbang < ./migrations/db.sql
-          mysql -h mysql -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
-          mysql -h mysql -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
+          mysql -h 127.0.0.1 -uroot -ppassword bigbang < ./migrations/db.sql
+          mysql -h 127.0.0.1 -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
+          mysql -h 127.0.0.1 -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
 
       - name: Create .env file
         run: |
           echo "PORT=3333" >> .env
-          echo "MYSQL_HOST=mysql" >> .env
+          echo "MYSQL_HOST=127.0.0.1" >> .env
           echo "MYSQL_USER=bigbanguser" >> .env
           echo "MYSQL_PASSWORD=bigbangpassword" >> .env
           echo "MYSQL_DB=bigbang" >> .env
