@@ -34,6 +34,7 @@ jobs:
           mysql -h 127.0.0.1 -uroot -ppassword < ./migrations/db.sql
           mysql -h 127.0.0.1 -uroot -ppassword -e "CREATE USER 'bigbanguser'@'%' IDENTIFIED BY 'bigbangpassword';"
           mysql -h 127.0.0.1 -uroot -ppassword -e "GRANT ALL ON bigbang.* TO 'bigbanguser'@'%';"
+          mysql -h 127.0.0.1 -uroot -ppassword -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '';"
 
       - name: Create .env file
         run: |
