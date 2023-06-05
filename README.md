@@ -1,5 +1,114 @@
 # Big Bang API
 
+## API Endpoints
+
+### 1. POST `/v1/invite/create`
+
+This API is used to create a record about the inviter and his invite. Using this method, information about the inviter who created the first invitation is inserted into the database.
+
+#### Request Body
+
+```json
+{
+    "inviter_address": "<Ethereum address of the inviter>",
+    "invite_address": "<Ethereum address of the invitee>",
+    "invite_signature": "<Signature of the invitee>",
+    "inviter_signature": "<Signature of the inviter>"
+}
+```
+
+#### Response
+
+The API will return a JSON object indicating the result of the operation.
+
+Example response:
+
+```json
+{
+    "result": "ok"
+}
+```
+
+---
+
+### 2. POST `/v1/invite/link`
+
+This API is used to link an invite to newly created account using this invite.
+
+#### Request Body
+
+```json
+{
+    "invite_address": "<Ethereum address of the invitee>",
+    "account_address": "<Ethereum address of the account>",
+    "invite_signature": "<Signature of the invitee>",
+    "account_signature": "<Signature of the account>"
+}
+```
+
+#### Response
+
+The API will return a JSON object indicating the result of the operation.
+
+Example response:
+
+```json
+{
+    "result": "ok"
+}
+```
+
+---
+
+### 3. GET `/v1/invite/inviter/:address`
+
+This API is used to get the count of invites and created accounts for a particular inviter.
+
+#### URL Parameters
+
+`address`: Ethereum address of the inviter
+
+#### Response
+
+The API will return a JSON object with the count of invites and created accounts for the inviter.
+
+Example response:
+
+```json
+{
+    "result": "ok",
+    "data": {
+        "invites": 10,
+        "accounts": 5
+    }
+}
+```
+
+---
+
+### 4. GET `/v1/invite/info`
+
+This API is used to get general information about the system including the total number of invites, accounts, and inviters.
+
+#### Response
+
+The API will return a JSON object with the information about the system.
+
+Example response:
+
+```json
+{
+"result": "ok",
+    "data": {
+        "invites": 100,
+        "accounts": 50,
+        "inviters": 30
+    }
+}
+```
+
+## Installation
+
 1 - Install dependencies (Node.js 16):
 
 `npm ci`
