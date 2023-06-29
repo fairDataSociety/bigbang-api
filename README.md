@@ -128,6 +128,70 @@ Example response:
 }
 ```
 
+---
+
+### 5. POST `/v1/invite/inviter/:address`
+
+This API is used to get information about the invites related to the inviter at a particular Ethereum address.
+
+#### Parameters
+
+The request to this API should include the Ethereum address of the inviter in the URL as a path parameter and a JSON object in the body, containing an array of invites to be checked.
+
+- **address**: The Ethereum address of the inviter (Path Parameter)
+- **invites**: An array of Ethereum addresses representing the invites (JSON Body)
+
+The array of invites must have a length between 1 and 50, both inclusive.
+
+Example request:
+
+```json
+{
+  "invites": ["0x...", "0x...", ...]
+}
+```
+
+#### Response
+
+The API will return a JSON object with the status of each invite provided in the request. The response object will have the following properties:
+
+- **isUsed**: A boolean indicating whether the invite has been used or not.
+- **isAccountCreated**: A boolean indicating whether an account has been created for the invite or not.
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "invites": {
+      "0x...": {
+        "isUsed": false,
+        "isAccountCreated": true
+      },
+      "0x...": {
+        "isUsed": true,
+        "isAccountCreated": false
+      },
+      ...
+    }
+  }
+}
+```
+
+#### Errors
+
+The API may return an error if the "address" or "invites" provided are not valid Ethereum addresses or if the length of "invites" is not within the valid range.
+
+Example error response:
+
+```json
+{
+  "status": "error",
+  "message": "\"invites\" length is not valid. Expected from 1 to 50 invites"
+}
+```
+
 ## Installation
 
 1 - Install dependencies (Node.js 16):

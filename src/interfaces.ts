@@ -47,3 +47,18 @@ export interface InviteLink {
    */
   account_signature: string
 }
+
+/**
+ * Structure to proof ownership of an invite and link it to a new account
+ */
+export interface InviteLogin {
+  /**
+   * An invite address (prefixed with '0x')
+   */
+  invite_address: string
+
+  /**
+   * Signature of the login magic text using private key of `invite_address`
+   */
+  invite_signature: string
+}

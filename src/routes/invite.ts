@@ -1,7 +1,7 @@
 import mysql, { FieldPacket, OkPacket } from 'mysql2/promise'
 import express from 'express'
-import { InviteCreate, InviteLink } from '../interfaces'
-import { isEthAddress, isSignature, isSignatureCorrect } from '../utils/signature'
+import { InviteCreate, InviteLink, InviteLogin } from '../interfaces'
+import { isEthAddress, isSignature, isSignatureCorrect, LOGIN_MESSAGE_TO_SIGN } from '../utils/signature'
 import { pool } from '../app'
 
 const router = express.Router()
@@ -92,6 +92,9 @@ router.post('/create', async (req, res, next) => {
   }
 })
 
+/**
+ * Links an invite to an account
+ */
 router.post('/link', async (req, res, next) => {
   try {
     const { invite_address, account_address, invite_signature, account_signature } = req.body as unknown as InviteLink
@@ -115,6 +118,14 @@ router.post('/link', async (req, res, next) => {
 
     if (!accountSignature || !isSignature(accountSignature)) {
       throw new Error(`"account_signature" is not valid: ${accountSignature}`)
+    }
+
+    if (!isSignatureCorrect(inviteAddress, inviteSignature, accountAddress)) {
+      throw new Error(`Invite signature is not correct: ${inviteSignature}`)
+    }
+
+    if (!isSignatureCorrect(accountAddress, accountSignature, inviteAddress)) {
+      throw new Error(`Account signature is not correct: ${accountSignature}`)
     }
 
     const connection = await pool.getConnection()
@@ -159,48 +170,58 @@ router.post('/link', async (req, res, next) => {
 })
 
 /**
- * Amount of registered invites and amount of created accounts
+ * First login with an invite
  */
-router.get('/inviter/:address', async (req, res, next) => {
+router.post('/login', async (req, res, next) => {
   try {
-    const address = req.params?.address?.toLowerCase()
+    const { invite_address, invite_signature } = req.body as unknown as InviteLogin
 
-    if (!isEthAddress(address)) {
-      throw new Error(`"address" is not valid: ${address}`)
+    const inviteAddress = invite_address.toLowerCase()
+    const inviteSignature = invite_signature.toLowerCase()
+
+    if (!inviteAddress || !isEthAddress(inviteAddress)) {
+      throw new Error(`"invite_address" is not valid: ${inviteAddress}`)
+    }
+
+    if (!inviteSignature || !isSignature(inviteSignature)) {
+      throw new Error(`"invite_signature" is not valid: ${inviteSignature}`)
+    }
+
+    if (!isSignatureCorrect(inviteAddress, inviteSignature, LOGIN_MESSAGE_TO_SIGN)) {
+      throw new Error(`Invite signature is not correct: ${inviteSignature}`)
     }
 
     const connection = await pool.getConnection()
+    await connection.beginTransaction()
     try {
-      const [inviterRows] = await connection.query<mysql.RowDataPacket[]>('SELECT id FROM inviter WHERE address = ?', [
-        address,
-      ])
+      const [inviteRows] = await connection.query<mysql.RowDataPacket[]>(
+        'SELECT id FROM invite WHERE invite_address = ?',
+        [inviteAddress],
+      )
 
-      if (inviterRows.length === 0) {
-        throw new Error(`Inviter does not exist with address: ${address}`)
+      if (inviteRows.length === 0) {
+        throw new Error(`Invite does not exist with address: ${inviteAddress}`)
       }
 
-      const inviterId = inviterRows[0].id
+      const inviteId = inviteRows[0].id
 
-      const [inviteRows] = await connection.query<mysql.RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM invite WHERE inviter_id = ?',
-        [inviterId],
-      )
+      // Update invite information with invite signature
+      await connection.query('UPDATE invite SET invite_use_signature = ? WHERE id = ?', [inviteSignature, inviteId])
 
-      const [accountRows] = await connection.query<mysql.RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM account WHERE invite_id IN (SELECT id FROM invite WHERE inviter_id = ?)',
-        [inviterId],
-      )
+      // Commit the transaction
+      await connection.commit()
 
       res.json({
         status: 'ok',
-        data: {
-          invites: inviteRows[0].count,
-          accounts: accountRows[0].count,
-        },
       })
     } catch (error) {
+      // If there's an error, rollback the transaction
+      await connection.rollback()
+
+      // Pass the error to the next middleware
       next(error)
     } finally {
+      // Whether there's an error or not, release the connection back to the pool
       connection.release()
     }
   } catch (e) {
@@ -208,6 +229,9 @@ router.get('/inviter/:address', async (req, res, next) => {
   }
 })
 
+/**
+ * Returns invites information
+ */
 router.get('/info', async (req, res, next) => {
   try {
     const connection = await pool.getConnection()

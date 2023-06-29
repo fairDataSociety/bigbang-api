@@ -12,6 +12,7 @@ import {
   InviterDb,
   InviterResponse,
 } from '../../utils/db'
+import { LOGIN_MESSAGE_TO_SIGN } from '../../../src/utils/signature'
 
 const db = knex(knexConfig.development)
 
@@ -214,5 +215,115 @@ describe('/invite', () => {
       expect(data1.data.invites).toBe(100)
       expect(data1.data.accounts).toBe(accountsCount)
     }
+  })
+
+  it('/inviter/:address - get invites info', async () => {
+    const getInvitesInfo = async () => {
+      const requestInvites = 50
+      const invitesResponseCorrect = await supertestApp
+        .post(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
+        .send({
+          invites: invitesAddressesAll.slice(0, requestInvites),
+        })
+      expect(invitesResponseCorrect.status).toBe(200)
+      const correctInvites = invitesResponseCorrect.body.data.invites
+      expect(Object.keys(correctInvites)).toHaveLength(requestInvites)
+
+      return {
+        invites: correctInvites,
+        keys: Object.keys(correctInvites),
+      }
+    }
+
+    await expectItems(db, 0, 0)
+
+    const supertestApp = supertest(app)
+    const inviter = Wallet.createRandom()
+    const invites = []
+    const accounts = []
+
+    for (let i = 0; i < 100; i++) {
+      const invite = Wallet.createRandom()
+      const account = Wallet.createRandom()
+      invites.push({
+        inviter_address: inviter.address.toLowerCase(),
+        invite_address: invite.address.toLowerCase(),
+        inviter_signature: await inviter.signMessage(invite.address.toLowerCase()),
+        login_signature: await invite.signMessage(LOGIN_MESSAGE_TO_SIGN),
+        invite_signature: await invite.signMessage(inviter.address.toLowerCase()),
+      })
+
+      accounts.push({
+        invite_address: invite.address.toLowerCase(),
+        account_address: account.address.toLowerCase(),
+        invite_signature: await invite.signMessage(account.address.toLowerCase()),
+        account_signature: await account.signMessage(invite.address.toLowerCase()),
+      })
+    }
+
+    for (let i = 0; i < 100; i++) {
+      const data = invites[i]
+      const response = await supertestApp.post('/v1/invite/create').send(data)
+      expect(response.status).toBe(200)
+    }
+
+    await expectItems(db, 1, 100, 0)
+
+    const response = await supertestApp.get(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
+    const data = response.body as InviterResponse
+    expect(response.status).toBe(200)
+    expect(data.data.invites).toBe(100)
+    expect(data.data.accounts).toBe(0)
+
+    const invitesAddressesAll = invites.map(invite => invite.invite_address)
+    const invitesResponse = await supertestApp.post(`/v1/invite/inviter/${inviter.address.toLowerCase()}`).send({
+      invites: invitesAddressesAll,
+    })
+    expect(invitesResponse.status).toBe(500)
+    expect(invitesResponse.body).toEqual({
+      status: 'error',
+      message: '"invites" length is not valid. Expected from 1 to 50 invites',
+    })
+
+    const invitesInfo1 = await getInvitesInfo()
+    invitesInfo1.keys.forEach((key: string) => {
+      expect(invitesInfo1.invites[key]).toEqual({
+        isUsed: false,
+        isAccountCreated: false,
+      })
+    })
+
+    const activateInviteCount = 5
+    for (let i = 0; i < activateInviteCount; i++) {
+      const data = invites[i]
+      expect(data).toBeDefined()
+      const response = await supertestApp.post(`/v1/invite/login`).send({
+        invite_address: data.invite_address,
+        invite_signature: data.login_signature,
+      })
+      expect(response.status).toBe(200)
+    }
+
+    const invitesInfo2 = await getInvitesInfo()
+    invitesInfo2.keys.forEach((key: string, index: number) => {
+      expect(invitesInfo2.invites[key]).toEqual({
+        isUsed: index < activateInviteCount,
+        isAccountCreated: false,
+      })
+    })
+
+    for (let i = 0; i < activateInviteCount; i++) {
+      const account = accounts[i]
+      const response = await supertestApp.post('/v1/invite/link').send(account)
+      expect(response.status).toBe(200)
+    }
+
+    const invitesInfo3 = await getInvitesInfo()
+    invitesInfo3.keys.forEach((key: string, index: number) => {
+      expect(invitesInfo3.invites[key]).toEqual({
+        isUsed: index < activateInviteCount,
+        isAccountCreated: index < activateInviteCount,
+      })
+    })
   })
 })

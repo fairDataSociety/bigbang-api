@@ -1,6 +1,11 @@
 import { verifyMessage } from 'ethers'
 
 /**
+ * Message to sign when user first time login with an invite
+ */
+export const LOGIN_MESSAGE_TO_SIGN = 'Invitation activated'
+
+/**
  * Check if ETH address is valid without checksum
  */
 export function isEthAddress(address: string): boolean {
@@ -23,7 +28,7 @@ export function isSignature(signature: string): boolean {
  */
 export function isSignatureCorrect(signerAddress: string, signature: string, message: string): boolean {
   try {
-    return verifyMessage(message.toLowerCase(), signature).toLowerCase() === signerAddress.toLowerCase()
+    return verifyMessage(message, signature).toLowerCase() === signerAddress.toLowerCase()
   } catch (e) {
     return false
   }
