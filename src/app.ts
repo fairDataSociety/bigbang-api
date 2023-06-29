@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import inviteRouter from './routes/invite'
+import inviterRouter from './routes/inviter'
 import { VERSION } from './const'
 import mysql from 'mysql2/promise'
 
@@ -28,6 +29,7 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(`/v${VERSION}/invite`, inviteRouter)
+app.use(`/v${VERSION}/invite/inviter`, inviterRouter)
 
 // eslint-disable-next-line unused-imports/no-unused-vars
 app.use(errorHandler)
