@@ -105,7 +105,7 @@ router.post('/:address', async (req, res, next) => {
         [inviterId],
       )
 
-      const resultInvites: { [key: string]: { isUsed: boolean; isAccountCreated: boolean } } = {}
+      const resultInvites: { [key: string]: { isUsed: boolean; isAccountCreated: boolean; isExists: boolean } } = {}
       invites.forEach((invite: string) => {
         const foundInvite = inviteRows.find(row => row.invite_address === invite)
 
@@ -114,11 +114,13 @@ router.post('/:address', async (req, res, next) => {
           resultInvites[invite] = {
             isUsed: foundInvite.invite_use_signature?.length > 0,
             isAccountCreated: Boolean(foundAccount),
+            isExists: true,
           }
         } else {
           resultInvites[invite] = {
             isUsed: false,
             isAccountCreated: false,
+            isExists: false,
           }
         }
       })
