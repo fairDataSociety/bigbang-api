@@ -218,23 +218,6 @@ describe('/invite', () => {
   })
 
   it('/inviter/:address - get invites info', async () => {
-    const getInvitesInfo = async () => {
-      const requestInvites = 50
-      const invitesResponseCorrect = await supertestApp
-        .post(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
-        .send({
-          invites: invitesAddressesAll.slice(0, requestInvites),
-        })
-      expect(invitesResponseCorrect.status).toBe(200)
-      const correctInvites = invitesResponseCorrect.body.data.invites
-      expect(Object.keys(correctInvites)).toHaveLength(requestInvites)
-
-      return {
-        invites: correctInvites,
-        keys: Object.keys(correctInvites),
-      }
-    }
-
     await expectItems(db, 0, 0)
 
     const supertestApp = supertest(app)
@@ -261,6 +244,24 @@ describe('/invite', () => {
       })
     }
 
+    const invitesAddressesAll = invites.map(invite => invite.invite_address)
+    const getInvitesInfo = async () => {
+      const requestInvites = 50
+      const invitesResponseCorrect = await supertestApp
+        .post(`/v1/invite/inviter/${inviter.address.toLowerCase()}`)
+        .send({
+          invites: invitesAddressesAll.slice(0, requestInvites),
+        })
+      expect(invitesResponseCorrect.status).toBe(200)
+      const correctInvites = invitesResponseCorrect.body.data.invites
+      expect(Object.keys(correctInvites)).toHaveLength(requestInvites)
+
+      return {
+        invites: correctInvites,
+        keys: Object.keys(correctInvites),
+      }
+    }
+
     for (let i = 0; i < 100; i++) {
       const data = invites[i]
       const response = await supertestApp.post('/v1/invite/create').send(data)
@@ -275,7 +276,6 @@ describe('/invite', () => {
     expect(data.data.invites).toBe(100)
     expect(data.data.accounts).toBe(0)
 
-    const invitesAddressesAll = invites.map(invite => invite.invite_address)
     const invitesResponse = await supertestApp.post(`/v1/invite/inviter/${inviter.address.toLowerCase()}`).send({
       invites: invitesAddressesAll,
     })
@@ -290,6 +290,7 @@ describe('/invite', () => {
       expect(invitesInfo1.invites[key]).toEqual({
         isUsed: false,
         isAccountCreated: false,
+        isExists: true,
       })
     })
 
@@ -309,6 +310,7 @@ describe('/invite', () => {
       expect(invitesInfo2.invites[key]).toEqual({
         isUsed: index < activateInviteCount,
         isAccountCreated: false,
+        isExists: true,
       })
     })
 
@@ -323,6 +325,7 @@ describe('/invite', () => {
       expect(invitesInfo3.invites[key]).toEqual({
         isUsed: index < activateInviteCount,
         isAccountCreated: index < activateInviteCount,
+        isExists: true,
       })
     })
   })
