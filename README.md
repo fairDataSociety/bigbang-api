@@ -194,7 +194,7 @@ Example error response:
 
 ## Installation
 
-1 - Install dependencies (Node.js 16):
+1 - Install dependencies (Node.js >=16):
 
 `npm ci`
 
